@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">
+<defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#bdc6b6"/><stop offset="1" stop-color="#657367"/></linearGradient><filter id="shadow" x="-30%" y="-30%" width="160%" height="180%"><feDropShadow dy="28" stdDeviation="24" flood-opacity=".22"/></filter></defs>
+<rect width="1200" height="900" fill="url(#bg)"/>
+<g transform="translate(90 130) rotate(-4 510 320)" filter="url(#shadow)">
+<rect width="1020" height="640" rx="14" fill="#f2f1eb"/><path d="M14 0H190V640H14Q0 640 0 626V14Q0 0 14 0" fill="#263e35"/>
+<g font-family="Arial,sans-serif"><text x="30" y="63" font-size="29" fill="#faf5e8">navia<tspan fill="#b5c78e">.</tspan></text>
+<g font-size="16" fill="#c2cec1"><text x="30" y="145">Overview</text><text x="30" y="202">Sales</text><text x="30" y="259">Purchasing</text><text x="30" y="316">Inventory</text><text x="30" y="373">Finance</text></g>
+<text x="230" y="66" font-size="27" fill="#253b33">A clearer picture.</text><text x="230" y="99" font-size="14" fill="#69796d">Connected business operations</text><text x="799" y="65" font-size="11" fill="#69796d">INTERFACE STUDY</text>
+<g fill="#fff"><rect x="230" y="144" width="230" height="118" rx="7"/><rect x="480" y="144" width="230" height="118" rx="7"/><rect x="730" y="144" width="250" height="118" rx="7"/><rect x="230" y="288" width="480" height="304" rx="7"/><rect x="730" y="288" width="250" height="304" rx="7"/></g>
+<g fill="#6d7d70" font-size="14"><text x="251" y="177">Sales overview</text><text x="501" y="177">Inventory flow</text><text x="751" y="177">Connected modules</text></g>
+<g fill="#2b4838" font-size="32"><text x="251" y="230">Steady growth</text><text x="501" y="230">In balance</text><text x="751" y="230">One workspace</text></g>
+<text x="253" y="326" fill="#304b3b" font-size="17">Operations at a glance</text><g stroke="#e9ece4"><path d="M252 382H687M252 432H687M252 482H687M252 532H687"/></g>
+<path d="M252 513L306 483L360 496L414 436L468 450L522 411L576 425L630 379L685 358V551H252Z" fill="#e4ebdc"/><path d="M252 513L306 483L360 496L414 436L468 450L522 411L576 425L630 379L685 358" fill="none" stroke="#647e4e" stroke-width="4"/>
+<text x="752" y="326" fill="#304b3b" font-size="17">Everything connected</text><g font-size="14" fill="#69796d"><text x="754" y="389">Sales → Inventory</text><text x="754" y="444">Purchasing → Inventory</text><text x="754" y="499">Inventory → Finance</text><text x="754" y="554">A consistent source of truth</text></g></g></g></svg>
