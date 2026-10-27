@@ -1,21 +1,24 @@
 # Verification
 
-Updated October 27, 2026 after the reference-matching revision.
+Updated October 27, 2026 on `feat/detailed-workspace-robot-gaze`.
 
-- `pnpm check` passes TypeScript, production build, static prerendering, asset
-  references, profile URL, one primary heading, and performance budgets.
-- Browser: live scene renders; project selection updates the description and
-  monitor artwork. Demo image links open their associated concept details.
-- Responsive layouts: 320, 390, 768, and 1440 CSS pixels checked in browser
-  frames. No horizontal overflow.
-- axe-core WCAG 2 A/AA and WCAG 2.1 AA scan: zero violations at those four widths.
-  This is an automated check, not a complete accessibility audit.
-- Fallback poster: approximately 49 kB, captured directly from the live scene.
-  Initial JavaScript: approximately 77 kB gzip. Optional scene: approximately
-  304 kB gzip. These are build measurements, not field Core Web Vitals scores.
-- Four project previews: Navia ERP plus three clearly labeled fictional concepts
-  with different local images. Former-employer work is excluded.
+- `pnpm check` passes camera-framing regression tests, TypeScript, production
+  build, static prerendering, asset checks, and initial JavaScript budgets.
+- Camera tests cover portrait, tablet, desktop, and ultrawide sizes. They protect
+  the monitor and antenna while allowing the desk to remain large behind text.
+  The full book perch is protected by a separate framing test.
+- Browser: head and eyes respond to pointer movement. Keyboard focus across all
+  four corners of the stack changes the gaze in both axes and selects the right
+  description. A real Tab key moved focus and selection to the next tool.
+- Responsive/axe-core checks at 320, 390, 768, 1024, and 1440 pixels found no
+  horizontal overflow or WCAG 2 A/AA and 2.1 AA violations. Automated checks do
+  not constitute a complete accessibility audit.
+- Full-viewport 3D background, foreground HTML text, and monitor-focused depth
+  of field replace the previous rectangular crop. The stack robot faces right.
+- Desktop, mobile, and book-perch posters are direct captures of the same models.
+  Desktop poster is approximately 60 kB, mobile 12 kB, and book perch 16 kB.
+  Initial JavaScript is approximately 81 kB gzip. Optional 3D modules remain lazy.
+- Material and glyph sources are documented under `public/textures` and
+  `public/icons`. No external asset service is needed at runtime.
 
-No live deployment was performed. Deploy `dist` or use the included provider
-configurations. Set the final domain in `src/data/site.ts` for canonical URLs
-and sitemap generation.
+No deployment or ZIP packaging was performed for this branch revision.

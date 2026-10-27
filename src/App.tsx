@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ArrowDownRight, ArrowUpRight, ArrowLeft, ArrowRight, Check, Copy, GithubLogo } from '@phosphor-icons/react';
 import { project, projects, site } from './data/site';
 import { SceneStage } from './components/SceneStage';
+import { TechStack } from './components/TechStack';
 
 export default function App() {
   const [activeIndex, setActiveIndex] = useState(0);
@@ -30,6 +31,7 @@ export default function App() {
         <nav aria-label="Main navigation">
           <a href="#work">Work</a>
           <a href="#about">About</a>
+          <a href="#toolkit">Stack</a>
           <a href="#contact" className="nav-contact">Let’s talk <ArrowUpRight size={15} aria-hidden="true" /></a>
         </nav>
       </header>
@@ -98,6 +100,8 @@ export default function App() {
             <details id={`details-${item.id}`}><summary>About the concept <span aria-hidden="true">+</span></summary><p>{item.detail}</p><ul className="stack">{item.tags.map(tag => <li key={tag}>{tag}</li>)}</ul></details>
           </article>)}</div>
         </section>
+
+        <TechStack />
 
         <section id="about" className="about-section content-width" aria-labelledby="about-title">
           <div className="about-heading"><h2 id="about-title">A builder at heart<span className="accent">.</span></h2></div>

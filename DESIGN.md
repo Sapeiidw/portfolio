@@ -42,6 +42,12 @@ Final project-art prompts (built-in image generation):
    headphones on a travertine plinth against burnt sienna. Diagonal sunlight,
    tactile materials, wide 3:2, no text or logos.
 
-Wood, rock, and book textures are deterministic canvas drawings. Foliage uses
+Wood and rock use local 1K Poly Haven PBR color, normal, and roughness maps. Book pages and spines are deterministic canvas drawings. Foliage uses
 instanced leaves. Lighting includes a locally rendered studio environment and
 warm direct lights; no remote environment assets are fetched.
+
+The main scene is a full-viewport background with text layered in front. Its
+framing protects the monitor and mascot rather than shrinking the entire desk.
+A restrained depth-of-field pass softens nearer props; it does not affect DOM
+text. The book-review scene reuses the same robot, oriented toward the stack,
+with head and eye tracking for pointer, focus, and touch selections.

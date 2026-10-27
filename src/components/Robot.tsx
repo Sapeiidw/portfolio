@@ -1,18 +1,41 @@
-import { Rod } from './primitives';
+import { useRef, type RefObject } from 'react';
+import { Group } from 'three';
+import { Rod, type Point } from './primitives';
+import { useRobotGaze, type GazeTarget } from './useRobotGaze';
 
-/** One mascot, shared by every camera position and the exported poster. */
-export function Robot() {
-  return <group position={[.48, 2.69, -.76]} rotation={[0, .08, -.05]}>
-    <mesh position={[0, .04, -.04]} scale={[.27, .22, .2]} castShadow><sphereGeometry args={[1, 40, 24]} /><meshStandardMaterial color="#c8b99e" roughness={.36} /></mesh>
-    <mesh position={[0, .37, 0]} scale={[.4, .34, .3]} castShadow><sphereGeometry args={[1, 64, 40]} /><meshPhysicalMaterial color="#e2d2b8" roughness={.32} clearcoat={.3} clearcoatRoughness={.28} /></mesh>
-    <mesh position={[0, .34, .244]} scale={[.305, .205, .105]}><sphereGeometry args={[1, 48, 32]} /><meshPhysicalMaterial color="#161811" roughness={.2} clearcoat={.7} metalness={.25} /></mesh>
-    {[-.115, .115].map(x => <mesh key={x} position={[x, .35, .343]} scale={[.032, .059, .015]}><sphereGeometry args={[1, 24, 16]} /><meshStandardMaterial color="#ffe3a0" emissive="#ffc764" emissiveIntensity={3} toneMapped={false} /></mesh>)}
+type RobotProps = { position?: Point; rotation?: Point; scale?: number; seated?: boolean; target?: RefObject<GazeTarget> };
+/** The identical shell, visor, eyes and mechanics are reused in both scenes. */
+export function Robot({ position = [0, 0, 0], rotation = [0, 0, 0], scale = 1, seated = false, target }: RobotProps) {
+  const head = useRef<Group>(null), eyes = useRef<Group>(null);
+  useRobotGaze(head, eyes, target);
+  return <group position={position} rotation={rotation} scale={scale}>
+    <mesh position={[0, .04, -.07]} scale={[.26, .24, .21]} castShadow><sphereGeometry args={[1, 48, 32]} /><meshPhysicalMaterial color="#cabc9e" roughness={.4} clearcoat={.15} /></mesh>
+    <mesh position={[0, .075, .124]} scale={[.16, .12, .035]}><sphereGeometry args={[1, 32, 20]} /><meshStandardMaterial color="#b8a78b" metalness={.25} roughness={.55} /></mesh>
+    <mesh position={[0, .09, .16]} rotation={[Math.PI / 2, 0, 0]}><cylinderGeometry args={[.026, .026, .008, 24]} /><meshStandardMaterial color="#b8833e" emissive="#bd782a" emissiveIntensity={.45} metalness={.5} /></mesh>
+    <group ref={head} position={[0, .38, 0]}>
+      <mesh scale={[.405, .342, .304]} castShadow><sphereGeometry args={[1, 64, 48]} /><meshPhysicalMaterial color="#d9cbb6" roughness={.34} clearcoat={.3} clearcoatRoughness={.3} /></mesh>
+      <mesh position={[0, -.025, .248]} scale={[.315, .219, .091]}><sphereGeometry args={[1, 64, 40]} /><meshStandardMaterial color="#6d5b43" metalness={.75} roughness={.35} /></mesh>
+      <mesh position={[0, -.025, .265]} scale={[.3, .202, .086]}><sphereGeometry args={[1, 64, 40]} /><meshPhysicalMaterial color="#080c0c" roughness={.19} metalness={.15} clearcoat={.8} clearcoatRoughness={.22} /></mesh>
+      <group ref={eyes} position={[0, 0, 0]}>
+        {[-.115, .115].map(x => <group key={x} position={[x, -.018, .348]}>
+          <mesh scale={[.037, .063, .013]}><sphereGeometry args={[1, 32, 20]} /><meshBasicMaterial color="#f5b94e" toneMapped={false} /></mesh>
+          <mesh position={[-.004, .008, .009]} scale={[.018, .038, .005]}><sphereGeometry args={[1, 24, 16]} /><meshBasicMaterial color="#ffe3a1" toneMapped={false} /></mesh>
+        </group>)}
+      </group>
+      {[-1, 1].map(side => <group key={side} position={[side * .39, -.02, -.04]} rotation={[0, 0, Math.PI / 2]}>
+        <mesh castShadow><cylinderGeometry args={[.124, .124, .08, 48]} /><meshStandardMaterial color="#584b3a" metalness={.7} roughness={.4} /></mesh>
+        <mesh position={[0, -side * .047, 0]}><cylinderGeometry args={[.104, .104, .025, 48]} /><meshPhysicalMaterial color="#ccb99a" metalness={.3} roughness={.35} clearcoat={.2} /></mesh>
+        <mesh position={[0, -side * .062, 0]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[.074, .007, 8, 40]} /><meshStandardMaterial color="#8c7759" metalness={.65} roughness={.45} /></mesh>
+      </group>)}
+      <Rod from={[.26, .22, -.06]} to={[.36, .58, -.06]} radius={.011} color="#b49b74" />
+      <mesh position={[.36, .58, -.06]}><sphereGeometry args={[.027, 20, 16]} /><meshStandardMaterial color="#f0c68a" emissive="#d6a04c" emissiveIntensity={.6} /></mesh>
+      <mesh position={[0, .302, -.12]} rotation={[.4, 0, 0]} scale={[.13, .013, .05]}><sphereGeometry args={[1, 32, 16]} /><meshStandardMaterial color="#a99a82" roughness={.6} /></mesh>
+    </group>
     {[-1, 1].map(side => <group key={side}>
-      <mesh position={[side * .39, .34, -.025]} rotation={[0, 0, Math.PI / 2]} castShadow><cylinderGeometry args={[.123, .123, .07, 32]} /><meshStandardMaterial color="#8c7b62" metalness={.55} roughness={.4} /></mesh>
-      <mesh position={[side * .425, .34, -.025]} scale={[.035, .105, .105]}><sphereGeometry args={[1, 24, 16]} /><meshStandardMaterial color="#d9c5a4" roughness={.4} /></mesh>
-      <mesh position={[side * .28, -.025, .21]} rotation={[0, 0, side * -.24]} scale={[.11, .15, .145]} castShadow><sphereGeometry args={[1, 32, 20]} /><meshPhysicalMaterial color="#dfcdb0" roughness={.4} clearcoat={.2} /></mesh>
+      <mesh position={[side * .265, .03, .1]} scale={[.07, .095, .075]}><sphereGeometry args={[1, 32, 20]} /><meshStandardMaterial color="#7a6a53" metalness={.55} roughness={.45} /></mesh>
+      <mesh position={[side * .28, -.035, .205]} rotation={[0, 0, side * -.23]} scale={[.11, .15, .14]} castShadow><sphereGeometry args={[1, 40, 28]} /><meshPhysicalMaterial color="#dac7a8" roughness={.4} clearcoat={.2} /></mesh>
+      {[0, 1].map(i => <mesh key={i} position={[side * .28 + (i ? .035 : -.035), -.105, .312]} rotation={[.18, 0, 0]}><capsuleGeometry args={[.006, .048, 3, 8]} /><meshStandardMaterial color="#a28c6d" roughness={.6} /></mesh>)}
+      {seated && <mesh position={[side * .155, -.17, .135]} scale={[.105, .07, .155]} castShadow><sphereGeometry args={[1, 32, 20]} /><meshStandardMaterial color="#c9b99c" roughness={.45} /></mesh>}
     </group>)}
-    <Rod from={[.27, .58, -.05]} to={[.38, .94, -.05]} radius={.012} color="#bda07a" />
-    <mesh position={[.38, .94, -.05]}><sphereGeometry args={[.027, 16, 12]} /><meshStandardMaterial color="#edbf7f" emissive="#ab6c2e" emissiveIntensity={.5} /></mesh>
   </group>;
 }

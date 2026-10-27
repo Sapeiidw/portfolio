@@ -25,9 +25,6 @@ The deployable site is in `dist/`. `check` performs TypeScript validation,
 builds the app, prerenders its HTML, checks assets and metadata, and enforces
 the initial-JavaScript and poster-image budgets.
 
-`portfolio-deploy.zip` contains the verified static build for a direct upload.
-Rebuild `dist` after changing source files; the ZIP is a delivery snapshot.
-
 ## Deploy
 
 Choose one provider. Deploy from this directory, not its parent.
@@ -71,7 +68,7 @@ GitHub is the contact destination until a public email is supplied.
   Content and anchor navigation work without JavaScript.
 - The 3D renderer is dynamically imported after the initial page paint. It is
   not part of the initial preload graph.
-- Mobile, reduced-motion, and data-saving visitors start with a roughly 49 kB
+- Mobile, reduced-motion, and data-saving visitors start with a roughly 60 kB
   WebP poster. Visitors can explicitly enable 3D.
 - Rendering is on demand, with a pixel ratio capped at 1.5. The scene uses local project artwork and procedural geometry; no external
   model, environment-map, or post-processing downloads are needed.
@@ -93,3 +90,21 @@ The lightweight `workspace.webp` poster is exported directly from this scene,
 so the desk, robot, and object arrangement match when 3D loads. After changing
 the geometry, regenerate it from the dev-only `window.__captureWorkspace()`
 helper at the top of the page. The helper is omitted from production builds.
+
+## Detailed scene and robot review
+
+Branch: `feat/detailed-workspace-robot-gaze`.
+
+The main scene fills the viewport behind the text. Its camera frames the monitor
+and antenna while the desk stays large in the foreground. A subtle depth-of-field
+pass focuses the monitor; HTML text remains a separate sharp foreground layer.
+The book-perch scene keeps its complete bounds visible and faces the robot toward
+the stack on the right. Both views use the same robot geometry and materials.
+
+The robot follows the pointer and looks toward hovered, tapped, or keyboard-focused
+stack items. Motion controls are synchronized. Reduced-motion visitors start with
+static posters, and offscreen scenes do not keep rendering.
+
+The local PBR material sources are documented in `public/textures/README.md`.
+Brand glyphs are documented in `public/icons/README.md`. `pnpm test` checks the
+camera framing across viewport sizes to catch clipping regressions.

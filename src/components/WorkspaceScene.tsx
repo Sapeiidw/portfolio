@@ -1,67 +1,63 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Environment, Lightformer } from '@react-three/drei';
-import { PCFShadowMap, Vector3 } from 'three';
+import { Box3, Group, PCFShadowMap, PerspectiveCamera, Vector3 } from 'three';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { StudioLighting } from './StudioLighting';
 import { Workspace } from './Workspace';
+import { WorkspaceDepth } from './WorkspaceDepth';
+import { SceneFraming } from './sceneFraming';
 import type { PortfolioProject } from '../data/site';
 
 gsap.registerPlugin(ScrollTrigger);
-
 declare global { interface Window { __captureWorkspace?: () => string } }
-function CameraRig({ onReady, onWork }: { onReady: () => void; onWork: (value: boolean) => void }) {
-  const { camera, invalidate, gl, scene } = useThree();
+function CameraRig({ model, onReady, onWork }: { model: RefObject<Group | null>; onReady: () => void; onWork: (value: boolean) => void }) {
+  const { camera, invalidate, gl, scene, size } = useThree();
+  const framing = useRef(new SceneFraming()), direction = useRef(new Vector3());
   const progress = useRef(0), pointer = useRef({ x: 0, y: 0 });
-  const targetPosition = useRef(new Vector3()), targetLookAt = useRef(new Vector3());
-  const lookAt = useRef(new Vector3(0, .7, 0));
+  const motion = useRef({ p: 0, x: 0, y: 0 });
   const ready = useRef(false), active = useRef(true);
+  useLayoutEffect(() => {
+    // Frame the monitor and mascot; the desk stays large in the foreground.
+    if (size.width >= 768) framing.current.setBox(new Box3(new Vector3(-1.9, .25, -1.25), new Vector3(1.9, 3.55, -.25)));
+    else if (model.current) framing.current.measure(model.current);
+  }, [model, size.width, size.height]);
   useEffect(() => {
-    const trigger = ScrollTrigger.create({ trigger: '#intro', start: 'top top', end: 'bottom bottom',
-      onUpdate: self => { progress.current = self.progress; onWork(self.progress > .35); if (active.current) invalidate(); },
-    });
+    const trigger = ScrollTrigger.create({ trigger: '#intro', start: 'top top', end: 'bottom bottom', onUpdate: self => {
+      progress.current = self.progress; onWork(self.progress > .35); if (active.current) invalidate();
+    } });
     progress.current = trigger.progress; onWork(trigger.progress > .35);
     const move = (event: PointerEvent) => {
       if (event.pointerType !== 'mouse' || !active.current) return;
-      pointer.current = { x: (event.clientX / window.innerWidth - .5) * 2, y: (event.clientY / window.innerHeight - .5) * 2 }; invalidate();
+      pointer.current = { x: (event.clientX / innerWidth - .5) * 2, y: (event.clientY / innerHeight - .5) * 2 }; invalidate();
     };
-    window.addEventListener('pointermove', move, { passive: true });
+    const leave = () => { pointer.current = { x: 0, y: 0 }; if (active.current) invalidate(); };
+    window.addEventListener('pointermove', move, { passive: true }); document.documentElement.addEventListener('pointerleave', leave);
     const observer = new IntersectionObserver(([entry]) => { active.current = entry.isIntersecting; if (entry.isIntersecting) invalidate(); });
     const intro = document.getElementById('intro'); if (intro) observer.observe(intro);
-    if (import.meta.env.DEV) window.__captureWorkspace = () => {
-      gl.render(scene, camera); return gl.domElement.toDataURL('image/webp', .86);
-    };
-    return () => { trigger.kill(); observer.disconnect(); window.removeEventListener('pointermove', move); delete window.__captureWorkspace; };
+    if (import.meta.env.DEV) window.__captureWorkspace = () => { window.dispatchEvent(new Event('robot-capture')); gl.render(scene, camera); window.dispatchEvent(new Event('workspace-render')); return gl.domElement.toDataURL('image/webp', .86); };
+    return () => { trigger.kill(); observer.disconnect(); window.removeEventListener('pointermove', move); document.documentElement.removeEventListener('pointerleave', leave); delete window.__captureWorkspace; };
   }, [invalidate, gl, scene, camera, onWork]);
   useFrame((_, delta) => {
-    const p = Math.min(progress.current * 1.12, 1), ease = p * p * (3 - 2 * p);
-    targetPosition.current.set(4.6 - ease * 2.3 + pointer.current.x * .12, 3.5 - ease * .15 - pointer.current.y * .07, 11.8 - ease * 5.5);
-    const blend = 1 - Math.exp(-Math.min(delta, .05) * 8);
-    camera.position.lerp(targetPosition.current, blend);
-    targetLookAt.current.set(-.1, .7 + ease * .6, -.1 - ease * .35);
-    lookAt.current.lerp(targetLookAt.current, blend); camera.lookAt(lookAt.current); camera.updateMatrixWorld();
+    const blend = ready.current ? 1 - Math.exp(-Math.min(delta, .05) * 8) : 1;
+    const pose = motion.current;
+    pose.p += (progress.current - pose.p) * blend; pose.x += (pointer.current.x - pose.x) * blend; pose.y += (pointer.current.y - pose.y) * blend;
+    const p = Math.min(pose.p * 1.12, 1), ease = p * p * (3 - 2 * p);
+    direction.current.set(4.6 - ease * 2.1 + pose.x * .14, 3.1 - ease * .6 - pose.y * .08, 11.8 - ease * 1.5);
+    const mobile = size.width < 768, content = Math.min(size.width, 1536), start = (size.width - content) / 2;
+    const frameWidth = .39 + ease * .13;
+    const left = mobile ? .035 : (start + content * (.69 - frameWidth / 2)) / size.width;
+    const width = mobile ? .93 : content * frameWidth / size.width;
+    framing.current.fit(camera as PerspectiveCamera, size.width, size.height, direction.current, { left, top: mobile ? .04 : .08, width, height: mobile ? .91 : .7 });
+    if (import.meta.env.DEV) gl.domElement.dataset.framing = JSON.stringify({ size: [size.width, size.height], distance: camera.position.distanceTo(framing.current.center), center: framing.current.center.toArray(), p: pose.p });
     if (!ready.current) { ready.current = true; onReady(); }
-    if (active.current && (camera.position.distanceToSquared(targetPosition.current) > .000002 || lookAt.current.distanceToSquared(targetLookAt.current) > .000002)) invalidate();
+    if (active.current && Math.abs(progress.current - pose.p) + Math.abs(pointer.current.x - pose.x) + Math.abs(pointer.current.y - pose.y) > .001) invalidate();
   });
   return null;
 }
 export default function WorkspaceScene({ onReady, project }: { onReady: () => void; project: PortfolioProject }) {
-  const [work, setWork] = useState(false);
-  return <div className="live-scene" aria-hidden="true">
-    <Canvas frameloop="demand" dpr={[1, 1.5]} shadows={{ type: PCFShadowMap }}
-      camera={{ position: [4.6, 3.5, 11.8], fov: 35, near: .1, far: 60 }}
-      gl={{ antialias: true, alpha: true, powerPreference: 'low-power' }} onCreated={({ gl }) => { gl.setClearColor('#191917', 0); }} fallback={null}>
-      <ambientLight intensity={.38} color="#e3d9ca" />
-      <hemisphereLight args={['#c7d2d7', '#55442e', .7]} />
-      <directionalLight position={[-3, 7, 5]} intensity={3.4} color="#ffe2bc" castShadow shadow-mapSize={[2048, 2048]} shadow-camera-left={-5} shadow-camera-right={5} shadow-camera-top={5} shadow-camera-bottom={-5} shadow-bias={-.0003} shadow-normalBias={.025} />
-      <directionalLight position={[3, 4, -3]} intensity={2.2} color="#c2cbd0" />
-      <pointLight position={[1.8, 1.5, -.6]} intensity={12} color="#ffba63" distance={5} decay={2} />
-      <Environment resolution={128} frames={1}>
-        <Lightformer form="rect" intensity={2} color="#fff0d8" position={[-3, 5, 3]} scale={[5, 5]} target={[0, 0, 0]} />
-        <Lightformer form="rect" intensity={1} color="#b5c6d4" position={[4, 2, -3]} scale={[3, 5]} target={[0, 1, 0]} />
-      </Environment>
-      <Workspace project={work ? project : null} />
-      <CameraRig onReady={onReady} onWork={setWork} />
-    </Canvas>
-  </div>;
+  const [work, setWork] = useState(false); const model = useRef<Group>(null);
+  return <div className="live-scene" aria-hidden="true"><Canvas frameloop="demand" dpr={[1, 1.5]} shadows={{ type: PCFShadowMap }} camera={{ position: [4.6, 3.5, 11.8], fov: 35, near: .1, far: 80 }} gl={{ antialias: true, alpha: true, powerPreference: 'low-power' }} onCreated={({ gl }) => { gl.setClearColor('#191917', 0); gl.toneMappingExposure = .95; }} fallback={null}>
+    <StudioLighting /><group ref={model}><Workspace project={work ? project : null} /></group><CameraRig model={model} onReady={onReady} onWork={setWork} /><WorkspaceDepth />
+  </Canvas></div>;
 }
