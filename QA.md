@@ -22,3 +22,17 @@ Updated October 27, 2026 on `feat/detailed-workspace-robot-gaze`.
   `public/icons`. No external asset service is needed at runtime.
 
 No deployment or ZIP packaging was performed for this branch revision.
+
+
+## Fantasy journey verification, October 2026
+
+- `pnpm check`: passed TypeScript, production build, prerender, asset/bundle checks, and all five tests.
+- Camera tests sample the complete route, verify finite positions and focus separation, and check continuity at every chapter boundary.
+- All six project destinations reached their expected camera phase; all six field-note dialogs opened with the correct title.
+- The atlas contains all six project links. Native Escape closes the modal; opening focuses its close control.
+- Browser checks at 320, 390, and 1440 CSS pixels found no horizontal overflow and no axe WCAG 2 A/AA or WCAG 2.1 AA violations.
+- The robot’s toolkit gaze changed from approximately (0.490, -0.576) on React to (0.799, -0.847) on Three.js.
+- No runtime errors were recorded during the six-destination interaction check.
+- Hero, Navia, and craft scenes were visually inspected. Separate desktop and mobile fallback posters were exported from actual geometry.
+- Production entry is about 83 KiB gzip; optional renderer about 271 KiB gzip. These are bundle measurements, not a Lighthouse or field-performance claim.
+- Static deploy output is `dist/`. No deployment or archive packaging was performed.

@@ -1,130 +1,488 @@
-import { useEffect, useRef, useState } from 'react';
-import { ArrowDownRight, ArrowUpRight, ArrowLeft, ArrowRight, Check, Copy, GithubLogo } from '@phosphor-icons/react';
-import { project, projects, site } from './data/site';
-import { SceneStage } from './components/SceneStage';
-import { TechStack } from './components/TechStack';
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import {
+  ArrowDown,
+  ArrowRight,
+  ArrowUpRight,
+  Compass,
+  GithubLogo,
+  Pause,
+  Play,
+  X,
+  Butterfly,
+  Check,
+  Copy,
+} from "@phosphor-icons/react";
+import { site, type PortfolioProject } from "./data/site";
+import { chapters, journeyProjects, projectNotes } from "./data/journey";
+import { toolkit } from "./data/toolkit";
+import { SceneBoundary } from "./components/SceneBoundary";
+import { Foreground } from "./components/journey/Foreground";
+import { useJourneyMotion } from "./components/journey/motion";
+import type { GazeTarget } from "./components/useRobotGaze";
+const RealmScene = lazy(() => import("./components/journey/RealmScene"));
 
 export default function App() {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const selected = projects[activeIndex];
-  const [copied, setCopied] = useState(false);
-  const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => () => { if (copyTimer.current) clearTimeout(copyTimer.current); }, []);
-
-  async function copyProfile() {
+  const { motion, active, running, reduced, toggle } = useJourneyMotion();
+  const [loadScene, setLoadScene] = useState(false),
+    [ready, setReady] = useState(false),
+    [failed, setFailed] = useState(false);
+  const [atlas, setAtlas] = useState(false),
+    [selected, setSelected] = useState<PortfolioProject | null>(null);
+  const [tool, setTool] = useState(toolkit[0]),
+    [copied, setCopied] = useState(false);
+  const dialog = useRef<HTMLDialogElement>(null),
+    opener = useRef<HTMLElement | null>(null);
+  const gaze = useRef<GazeTarget>({ x: 0, y: 0, active: false });
+  const copyTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
+  useEffect(() => {
+    const connection = (
+      navigator as Navigator & { connection?: { saveData?: boolean } }
+    ).connection;
+    const timer = setTimeout(
+      () =>
+        setLoadScene(
+          !connection?.saveData &&
+            !matchMedia("(prefers-reduced-motion: reduce)").matches,
+        ),
+      120,
+    );
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(copyTimer.current);
+    };
+  }, []);
+  useEffect(() => {
+    if (atlas || selected) {
+      opener.current = document.activeElement as HTMLElement;
+      dialog.current?.showModal();
+      const old = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = old;
+        opener.current?.focus({ preventScroll: true });
+      };
+    }
+    dialog.current?.close();
+  }, [atlas, selected]);
+  const close = () => {
+    setAtlas(false);
+    setSelected(null);
+  };
+  function toggleMotion() {
+    if (!loadScene) {
+      setLoadScene(true);
+      if (!running) toggle();
+    } else toggle();
+  }
+  function lookAt(element: HTMLElement, item: (typeof toolkit)[number]) {
+    setTool(item);
+    const rect = element.getBoundingClientRect();
+    gaze.current = {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2,
+      active: true,
+    };
+    window.dispatchEvent(new Event("robot-look-target"));
+  }
+  async function copy() {
     try {
-      await navigator.clipboard.writeText(site.email || site.github);
+      await navigator.clipboard.writeText(site.github);
       setCopied(true);
-      if (copyTimer.current) clearTimeout(copyTimer.current);
-      copyTimer.current = setTimeout(() => setCopied(false), 2500);
+      copyTimer.current = setTimeout(() => setCopied(false), 2200);
     } catch {
-      window.open(site.github, '_blank', 'noopener,noreferrer');
+      setCopied(false);
     }
   }
-
+  const current = chapters[active];
   return (
-    <>
-      <a className="skip-link" href="#main">Skip to content</a>
+    <div
+      className={`portfolio ${ready ? "realm-ready" : ""} ${!running || reduced ? "motion-paused" : ""}`}
+    >
+      <a href="#main" className="skip-link">
+        Skip to content
+      </a>
+      <div className="realm-backdrop" aria-hidden="true">
+        <picture><source media="(max-width: 767px)" srcSet="/images/realm-mobile.webp" /><img
+          className="realm-poster"
+          src="/images/realm.webp"
+          alt=""
+          fetchPriority="high"
+        /></picture>
+        {loadScene && !failed && (
+          <SceneBoundary
+            onError={() => {
+              setFailed(true);
+              setReady(false);
+            }}
+          >
+            <Suspense fallback={null}>
+              <RealmScene
+                motion={motion}
+                gaze={gaze}
+                onReady={() => setReady(true)}
+              />
+            </Suspense>
+          </SceneBoundary>
+        )}
+      </div>
+      <Foreground />
       <header className="header">
-        <a className="wordmark" href="#home" aria-label={`${site.name}, home`}>sakti<span>.</span></a>
+        <a className="wordmark" href="#home" aria-label="Sakti Pujo Edi, home">
+          <Compass size={31} weight="light" aria-hidden="true" />
+          <span>
+            sakti<span className="wordmark-dot">.</span>
+            <small>FULL-STACK DEVELOPER</small>
+          </span>
+        </a>
         <nav aria-label="Main navigation">
-          <a href="#work">Work</a>
-          <a href="#about">About</a>
-          <a href="#toolkit">Stack</a>
-          <a href="#contact" className="nav-contact">Let’s talk <ArrowUpRight size={15} aria-hidden="true" /></a>
+          <button onClick={() => setAtlas(true)}>
+            The journey <span>06</span>
+          </button>
+          <a href="#craft">The craft</a>
+          <a className="header-contact" href="#contact">
+            Let’s build <ArrowUpRight size={16} aria-hidden="true" />
+          </a>
         </nav>
       </header>
-
+      <aside className="chapter-rail" aria-label="Journey chapters">
+        {chapters.map((chapter, i) => (
+          <a
+            key={chapter.id}
+            href={`#${chapter.id}`}
+            aria-label={`${String(i).padStart(2, "0")}. ${chapter.label}`}
+            aria-current={active === i ? "location" : undefined}
+          >
+            <span className="rail-label">{chapter.label}</span>
+            <span className="rail-mark" />
+          </a>
+        ))}
+      </aside>
       <main id="main" tabIndex={-1}>
-        <div className="story" id="intro">
-          <SceneStage project={selected} />
-          <section id="home" className="hero content-width" aria-labelledby="hero-title">
-            <div className="hero-copy">
-              <p className="intro-label">Hi, I’m Sakti Pujo Edi</p>
-              <h1 id="hero-title">Creative<br />developer<span className="accent">.</span></h1>
-              <p className="hero-description">A selection of things I build.<br className="desktop-break" /> Thoughtful software, with a little personality.</p>
-              <a className="text-link hero-link" href="#work">Explore my work <ArrowDownRight size={20} aria-hidden="true" /></a>
+        {chapters.map((chapter, i) => (
+          <section
+            id={chapter.id}
+            className={`journey-chapter chapter-${chapter.kind}`}
+            aria-labelledby={`${chapter.id}-title`}
+            key={chapter.id}
+          >
+            <div className="chapter-window">
+              {chapter.project && (
+                <img
+                  className="chapter-fallback"
+                  src={chapter.project.image}
+                  alt=""
+                  loading="lazy"
+                />
+              )}
+              <div className="chapter-content">
+                {i === 0 ? (
+                  <div className="hero-copy">
+                    <p className="eyebrow">
+                      <span className="tiny-star">✦</span> A portfolio beyond
+                      the ordinary
+                    </p>
+                    <h1 id="home-title">
+                      A little code.
+                      <br />
+                      Infinite
+                      <br />
+                      <em>worlds.</em>
+                    </h1>
+                    <p className="hero-description">
+                      I’m Sakti Pujo Edi. Full-stack developer,
+                      <br className="desktop-break" /> curious maker, and a
+                      builder of things that work.
+                    </p>
+                    <a className="journey-link" href="#navia">
+                      <span className="round-arrow">
+                        <ArrowDown size={18} aria-hidden="true" />
+                      </span>
+                      Enter the realm
+                      <span className="link-line" />
+                    </a>
+                    <div className="hero-footnote">
+                      <span>UI to API. Idea to experience.</span>
+                      <span>EST. IN CURIOSITY</span>
+                    </div>
+                  </div>
+                ) : chapter.project ? (
+                  <div className="project-copy">
+                    <p className="eyebrow">
+                      <span>{chapter.project.number} / 06</span>
+                      <span className="eyebrow-line" />
+                      {chapter.realm}
+                    </p>
+                    <p className="project-type">{chapter.project.category}</p>
+                    <h2 id={`${chapter.id}-title`}>
+                      {chapter.project.title}
+                      <span className="title-period">.</span>
+                    </h2>
+                    <p className="project-description">
+                      {chapter.project.description}
+                    </p>
+                    <ul className="project-tags" aria-label="Project focus">
+                      {chapter.project.tags.slice(0, 3).map((tag) => (
+                        <li key={tag}>{tag}</li>
+                      ))}
+                    </ul>
+                    <button
+                      className="journey-link"
+                      onClick={() => setSelected(chapter.project!)}
+                    >
+                      Open field notes{" "}
+                      <span className="round-arrow">
+                        <ArrowUpRight size={19} aria-hidden="true" />
+                      </span>
+                    </button>
+                    <p className="project-status">
+                      <span
+                        className={
+                          chapter.project.demo
+                            ? "status-concept"
+                            : "status-live"
+                        }
+                      />
+                      {chapter.project.demo
+                        ? "Fictional project / design exploration"
+                        : "Personal project / in development"}
+                    </p>
+                  </div>
+                ) : chapter.kind === "craft" ? (
+                  <div className="craft-copy">
+                    <p className="eyebrow">07 / Behind the worlds</p>
+                    <h2 id="craft-title">
+                      Imagination.
+                      <br />
+                      <em>Engineered.</em>
+                    </h2>
+                    <p>
+                      I build across interfaces, APIs, and databases. My current
+                      focus is Navia ERP: making complex business workflows feel
+                      straightforward.
+                    </p>
+                    <div
+                      className="toolkit-grid"
+                      onPointerLeave={() => {
+                        gaze.current.active = false;
+                      }}
+                      onBlur={(event) => {
+                        if (!event.currentTarget.contains(event.relatedTarget))
+                          gaze.current.active = false;
+                      }}
+                    >
+                      {toolkit.map((item) => (
+                        <button
+                          key={item.id}
+                          aria-pressed={tool.id === item.id}
+                          onPointerEnter={(event) =>
+                            lookAt(event.currentTarget, item)
+                          }
+                          onFocus={(event) => lookAt(event.currentTarget, item)}
+                          onClick={(event) => lookAt(event.currentTarget, item)}
+                        >
+                          {item.id === "elysia" ? (
+                            <Butterfly
+                              size={22}
+                              color={item.color}
+                              aria-hidden="true"
+                            />
+                          ) : (
+                            <img
+                              src={`/icons/${item.id}.svg`}
+                              width="22"
+                              height="22"
+                              alt=""
+                              loading="lazy"
+                            />
+                          )}
+                          <span>{item.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                    <p className="tool-detail" aria-live="polite">
+                      <strong>{tool.name}</strong> {tool.description}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="contact-copy">
+                    <p className="eyebrow">
+                      Every good world starts with an idea
+                    </p>
+                    <h2 id="contact-title">
+                      What shall we
+                      <br />
+                      <em>build next?</em>
+                    </h2>
+                    <p>
+                      A useful product. An unexpected experience.
+                      <br />
+                      Something that deserves to exist.
+                    </p>
+                    <a
+                      className="contact-link"
+                      href={site.github}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Find me on GitHub{" "}
+                      <ArrowUpRight size={22} aria-hidden="true" />
+                    </a>
+                    <button className="copy-contact" onClick={copy}>
+                      {copied ? <Check size={15} /> : <Copy size={15} />}
+                      <span aria-live="polite">
+                        {copied ? "Link copied" : "Copy profile link"}
+                      </span>
+                    </button>
+                    <div className="contact-footer">
+                      <span>© {new Date().getFullYear()} Sakti Pujo Edi</span>
+                      <a href="#home">
+                        Back to the beginning{" "}
+                        <ArrowUpRight size={14} aria-hidden="true" />
+                      </a>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <span className="realm-caption" aria-hidden="true">
+                {String(i).padStart(2, "0")}
+                <span />
+                {chapter.realm}
+              </span>
             </div>
           </section>
-
-          <section id="work" className="work-intro content-width" aria-labelledby="work-title">
-            <div className="work-copy">
-              <p className="section-label">A few things from my workspace</p>
-              <h2 id="work-title">Selected work<span className="accent">.</span></h2>
-              <div className="project-summary" aria-live="polite" aria-atomic="true">
-                <p className="project-category">{selected.category} <span>/</span> {selected.status}</p>
-                <h3><span className="project-index">{selected.number} /</span> {selected.title}</h3>
-                <p>{selected.description}</p>
-                <a href={selected.demo ? `#concept-${selected.id}` : '#navia'} className="text-link">{selected.demo ? 'Explore the concept' : 'Inside the project'} <ArrowDownRight size={20} aria-hidden="true" /></a>
-              </div>
-              <div className="project-switcher" aria-label="Select featured project">
-                <button className="project-arrow" onClick={() => setActiveIndex((activeIndex + projects.length - 1) % projects.length)} aria-label="Previous project"><ArrowLeft size={18} aria-hidden="true" /></button>
-                <div className="project-steps">{projects.map((item, i) => <button key={item.id} onClick={() => setActiveIndex(i)} aria-label={`Show ${item.title}`} aria-pressed={i === activeIndex}><span /></button>)}</div>
-                <button className="project-arrow" onClick={() => setActiveIndex((activeIndex + 1) % projects.length)} aria-label="Next project"><ArrowRight size={18} aria-hidden="true" /></button>
-                <span className="project-count" aria-hidden="true">{selected.number} / 04</span>
-              </div>
-              <img className="mobile-project-preview" src={selected.image} alt={selected.imageAlt} width="1200" height="800" loading="lazy" />
-            </div>
-          </section>
-        </div>
-
-        <section id="navia" className="project-section content-width" aria-labelledby="navia-title">
-          <div className="project-heading">
-            <p className="section-label">Current project</p>
-            <h2 id="navia-title">Complex operations.<br /><em>Clearer connections.</em></h2>
-          </div>
-          <div className="project-detail">
-            <div className="project-overview">
-              <h3>Navia ERP</h3>
-              <p>{project.detail}</p>
-              <ul className="stack" aria-label="Project technology stack">{project.stack.map(tech => <li key={tech}>{tech}</li>)}</ul>
-              <a className="text-link" href={site.github} target="_blank" rel="noopener noreferrer">More on GitHub <ArrowUpRight size={18} aria-hidden="true" /></a>
-            </div>
-            <div className="project-areas">
-              {project.areas.map((area, i) => <article key={area.title}>
-                <span className="area-number" aria-hidden="true">0{i + 1}</span>
-                <div><h3>{area.title}</h3><p>{area.description}</p></div>
-              </article>)}
-            </div>
-          </div>
-        </section>
-
-        <section className="concept-section content-width" aria-labelledby="concept-title">
-          <div className="concept-heading"><div><p className="section-label">Room to experiment</p><h2 id="concept-title">Other little worlds<span className="accent">.</span></h2></div><p>Three fictional projects.<br />Three different directions.</p></div>
-          <div className="concept-grid">{projects.filter(item => item.demo).map(item => <article className="concept-card" id={`concept-${item.id}`} key={item.id}>
-            <a className="concept-image-link" href={`#details-${item.id}`} onClick={() => { const detail = document.getElementById(`details-${item.id}`); if (detail instanceof HTMLDetailsElement) detail.open = true; }} aria-label={`Read about ${item.title}`}><img src={item.image} alt={item.imageAlt} width="1200" height="800" loading="lazy" decoding="async" /><span className="concept-badge">Demo concept</span><span className="concept-image-arrow"><ArrowUpRight size={24} aria-hidden="true" /></span></a>
-            <div className="concept-title-row"><h3>{item.title}</h3><span>{item.number}</span></div>
-            <p className="concept-category">{item.category}</p>
-            <p className="concept-description">{item.description}</p>
-            <details id={`details-${item.id}`}><summary>About the concept <span aria-hidden="true">+</span></summary><p>{item.detail}</p><ul className="stack">{item.tags.map(tag => <li key={tag}>{tag}</li>)}</ul></details>
-          </article>)}</div>
-        </section>
-
-        <TechStack />
-
-        <section id="about" className="about-section content-width" aria-labelledby="about-title">
-          <div className="about-heading"><h2 id="about-title">A builder at heart<span className="accent">.</span></h2></div>
-          <div className="about-content">
-            <p className="about-lead">I’m Sakti, a full-stack developer who enjoys making complicated things feel straightforward.</p>
-            <p>I work across interfaces, APIs, and databases. My current focus is Navia ERP: connecting everyday business workflows through thoughtful software.</p>
-            <p>This little workspace is a different side of the same curiosity. A place to experiment with interaction, movement, and the details that make the web feel personal.</p>
-            <a className="text-link" href={site.github} target="_blank" rel="noopener noreferrer"><GithubLogo size={19} aria-hidden="true" /> Follow what I’m building <ArrowUpRight size={18} aria-hidden="true" /></a>
-          </div>
-        </section>
-
-        <section id="contact" className="contact-section content-width" aria-labelledby="contact-title">
-          <p className="section-label">Have something in mind?</p>
-          <h2 id="contact-title">Let’s make<br /><em>something good.</em></h2>
-          <div className="contact-actions">
-            <a className="contact-primary" href={site.email ? `mailto:${site.email}` : site.github} target={site.email ? undefined : '_blank'} rel={site.email ? undefined : 'noopener noreferrer'}>{site.email ? 'Say hello by email' : 'Find me on GitHub'} <ArrowUpRight size={24} aria-hidden="true" /></a>
-            <button className="copy-button" onClick={copyProfile} aria-label={copied ? 'Copied to clipboard' : 'Copy contact link'}>{copied ? <Check size={18} aria-hidden="true" /> : <Copy size={18} aria-hidden="true" />}<span aria-live="polite">{copied ? 'Copied!' : 'Copy link'}</span></button>
-          </div>
-        </section>
+        ))}
       </main>
-
-      <footer className="footer content-width"><p>© {new Date().getFullYear()} {site.name}</p><a href={site.github} target="_blank" rel="noopener noreferrer">GitHub <ArrowUpRight size={14} aria-hidden="true" /></a><a href="#home">Back to top ↑</a></footer>
-    </>
+      <div className="journey-hud">
+        <button
+          className="atlas-trigger"
+          onClick={() => setAtlas(true)}
+          aria-label="Open journey map"
+        >
+          <Compass size={20} weight="light" aria-hidden="true" />
+          <span>
+            <small>EXPLORING</small>
+            {current.realm}
+          </span>
+        </button>
+        <div className="scroll-cue" aria-hidden="true">
+          <span />
+          {active === chapters.length - 1
+            ? "The story continues with you"
+            : "Scroll to wander"}
+        </div>
+        <button
+          className="motion-button"
+          onClick={toggleMotion}
+          aria-pressed={loadScene && running && !reduced}
+        >
+          {loadScene && running && !reduced ? (
+            <Pause size={13} weight="fill" />
+          ) : (
+            <Play size={13} weight="fill" />
+          )}
+          <span>
+            {failed
+              ? "Scene unavailable"
+              : loadScene && running && !reduced
+                ? "Motion on"
+                : "Motion off"}
+          </span>
+        </button>
+      </div>
+      <div className="journey-progress" aria-hidden="true" />
+      <dialog
+        ref={dialog}
+        className={`field-dialog ${atlas ? "atlas-dialog" : ""}`}
+        onCancel={close}
+        onClick={(event) => {
+          if (event.target === event.currentTarget) close();
+        }}
+        aria-labelledby="dialog-title"
+      >
+        <div className="dialog-inner">
+          <button
+            className="dialog-close"
+            onClick={close}
+            aria-label="Close dialog"
+          >
+            <X size={22} />
+          </button>
+          {atlas ? (
+            <>
+              <p className="eyebrow">Choose your destination</p>
+              <h2 id="dialog-title">An atlas of ideas.</h2>
+              <p className="atlas-intro">
+                One work in progress. Five imagined possibilities.
+              </p>
+              <div className="atlas-list">
+                {journeyProjects.map((item, i) => (
+                  <a key={item.id} href={`#${item.id}`} onClick={close}>
+                    <span>{item.number}</span>
+                    <img
+                      src={item.image}
+                      alt=""
+                      width="80"
+                      height="54"
+                      loading="lazy"
+                    />
+                    <span>
+                      <strong>{item.title}</strong>
+                      <small>{chapters[i + 1].realm}</small>
+                    </span>
+                    <span className="atlas-status">
+                      {item.demo ? "Concept" : "In development"}
+                    </span>
+                    <ArrowUpRight size={20} aria-hidden="true" />
+                  </a>
+                ))}
+              </div>
+            </>
+          ) : selected ? (
+            <>
+              <img
+                className="field-image"
+                src={selected.image}
+                alt={selected.imageAlt}
+                width="1200"
+                height="800"
+              />
+              <div className="field-copy">
+                <p className="eyebrow">
+                  {selected.status} / {selected.category}
+                </p>
+                <h2 id="dialog-title">{selected.title}</h2>
+                <p>{selected.detail}</p>
+                <ul className="field-notes">
+                  {projectNotes[selected.id].map((note) => (
+                    <li key={note}>
+                      <ArrowRight size={15} aria-hidden="true" />
+                      {note}
+                    </li>
+                  ))}
+                </ul>
+                <ul className="project-tags">
+                  {selected.tags.map((tag) => (
+                    <li key={tag}>{tag}</li>
+                  ))}
+                </ul>
+                {!selected.demo && (
+                  <a
+                    className="journey-link"
+                    href={site.github}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <GithubLogo size={19} />
+                    Follow what I’m building <ArrowUpRight size={17} />
+                  </a>
+                )}
+              </div>
+            </>
+          ) : null}
+        </div>
+      </dialog>
+    </div>
   );
 }
-

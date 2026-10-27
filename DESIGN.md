@@ -51,3 +51,12 @@ framing protects the monitor and mascot rather than shrinking the entire desk.
 A restrained depth-of-field pass softens nearer props; it does not affect DOM
 text. The book-review scene reuses the same robot, oriented toward the stack,
 with head and eye tracking for pointer, focus, and touch selections.
+
+
+## Fantasy journey redesign, October 2026
+
+Branch: `feat/portfolio-refinements`. The current page replaces the desk layout with one fixed, full-viewport world. Nine destinations share a continuous camera path. Five explicitly fictional projects accompany the real Navia ERP project. Each has distinct architecture, an animated object, and its own image surface.
+
+Visual direction: an illustrated fantasy atlas in deep teal, weathered stone, foliage, and warm brass light. The existing manuscript-like Cormorant typography and consistent cream robot are retained. Sharp HTML sits above native Three.js depth of field; flat foreground fronds and motes move at separate cursor depths. The camera travels through the world without changing or intercepting native wheel behaviour.
+
+Terrain and mountain geometry, trees, portal, observatory, headphones, lighthouse, water shader, and airship are procedural, deterministic assets. Tidal and Aether previews are original local SVG interface studies with fictional content. The same original Robot component appears at the threshold, craft, and closing portal. Hero posters are direct exports of the live scene, with separate desktop and mobile compositions.
